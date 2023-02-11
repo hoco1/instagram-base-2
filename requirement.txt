@@ -1,0 +1,23 @@
+# style code
+black
+
+# scraping
+requests
+
+# web application
+fastapi
+uvicorn
+pydantic[email]
+python-jose[cryptography]
+jose
+python-multipart
+
+# database
+pymongo
+motor
+
+# hashing password
+passlib[bcrypt] 
+
+# config
+python-decouple
