@@ -15,7 +15,7 @@ from fastapi import HTTPException,Depends
 router = APIRouter()
 
 @router.post('/register',tags=['users'],response_model=UserOut)
-async def create_user(user:UserIn=Body(default=None),db=Depends(get_database)) -> UserOut:
+async def create_user(user:UserIn,db=Depends(get_database)):
     user = dict(user)
     await db.add_account(user)
     return user
