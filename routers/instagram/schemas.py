@@ -1,8 +1,9 @@
 from pydantic import BaseModel,Field
-
+from typing import Optional,Union,Dict
 class Account(BaseModel):
-    instagramID:str = Field(default=None)
-    instagramPass:str = Field(default=None)
+    instagramID:Optional[Union[None,str] ]
+    instagramPass:Union[None,str] 
+    cookie:Optional[Dict]
 
 class Cookie(BaseModel):
     _id:str
