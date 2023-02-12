@@ -24,13 +24,14 @@ class MongoManager:
         user = await self.db[settings.TABLE_USERS].find_one({"username":username})
         return user
     
-    async def get_cookie(self):
-        cursor = self.db[settings.TABLE_INSTAGRAM_COOKIE].find().sort("_id",-1).limit(1)
+    async def get_cookie(self,instaID):
+        cursor = self.db[settings.TABLE_INSTAGRAM_COOKIE].find({'account':instaID}).sort("_id",-1).limit(1)
         cookie = []
         async for i in cursor:
             cookie.append(i)
         cookie = cookie[0]
         del cookie['_id']
+        del cookie['account']
         return cookie
     
     async def add_instagram_account(self,username,password):
