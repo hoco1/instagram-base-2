@@ -2,6 +2,7 @@ from core.config import settings
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from typing import List
 from core.hashing import Hasher
+from bson.objectid import ObjectId
 class MongoManager:
     client: AsyncIOMotorClient = None
     db: AsyncIOMotorDatabase = None
@@ -30,11 +31,14 @@ class MongoManager:
         async for i in cursor:
             cookie.append(i)
         print(cookie)
-        cookie = cookie[0]
-        del cookie['_id']
-        del cookie['username']
-        del cookie['userPanel']
-        return cookie
+        try:
+            cookie = cookie[0]
+            del cookie['_id']
+            del cookie['username']
+            del cookie['userPanel']
+            return cookie
+        except:
+            return None
     
     async def add_instagram_account(self,data):
         await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].insert_one(data)
