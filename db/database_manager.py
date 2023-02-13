@@ -20,23 +20,32 @@ class MongoManager:
         user['password'] = Hasher.get_password_hash(user['password'])
         await self.db[settings.TABLE_USERS].insert_one(user)
     
-    async def get_account_info(self,username):
+    async def get_account(self,username):
         user = await self.db[settings.TABLE_USERS].find_one({"username":username})
         return user
     
-    async def get_cookie(self,instaID):
-        cursor = self.db[settings.TABLE_INSTAGRAM_COOKIE].find({'account':instaID}).sort("_id",-1).limit(1)
+    async def get_cookie(self,userPanel):
+        cursor = self.db[settings.TABLE_INSTAGRAM_COOKIE].find({'userPanel':userPanel}).sort("_id",-1).limit(1)
         cookie = []
         async for i in cursor:
             cookie.append(i)
+        print(cookie)
         cookie = cookie[0]
         del cookie['_id']
-        del cookie['account']
+        del cookie['username']
+        del cookie['userPanel']
         return cookie
     
-    async def add_instagram_account(self,username,password):
-        await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].insert_one({'username':username,'pwd':password})
-        
+    async def add_instagram_account(self,data):
+        await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].insert_one(data)
+    
+    async def get_instagram_accounts(self,userPanel):
+        list_accounts = []
+        accounts = self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].find({'userPanel':userPanel})
+        async for account in accounts:
+            list_accounts.append(account)
+        return list_accounts
+
     async def add_cookie(self,cookie):
         await self.db[settings.TABLE_INSTAGRAM_COOKIE].insert_one(dict(cookie))
         
