@@ -23,7 +23,7 @@ async def create_user(user:UserIn,db=Depends(get_database)):
 @router.post("/token", response_model=Token,tags=['users'],)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),db=Depends(get_database)):
     
-    user = await db.get_account_info(form_data.username)
+    user = await db.get_account(form_data.username)
     if  not user or not Hasher.verify_password(form_data.password,user['password']):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
