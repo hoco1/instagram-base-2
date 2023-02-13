@@ -4,7 +4,7 @@ class Account(BaseModel):
     instagramID:Optional[str]
     instagramPass:Optional[str] 
     cookie:Optional[Union[dict,list,None]]
-class User(BaseModel):
+class UserPanel(BaseModel):
     username:str
 class Instagram(BaseModel):
     message:str
@@ -12,3 +12,10 @@ class Instagram(BaseModel):
 class FetchData(BaseModel):
     instagramID:str
     whichAccount:Optional[str]
+
+class ResponseLogin(BaseModel):
+    gender:str
+    username:str
+    email:str
+    cookie:dict
+
