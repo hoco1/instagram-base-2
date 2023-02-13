@@ -1,12 +1,14 @@
 from datetime import datetime
 import requests
 import json
+from fastapi import HTTPException
 class InstagramScrapping: 
-    def __init__(self,database):
+    def __init__(self,database,userPanel):
+        self.db = database
+        self.userPanel = userPanel
+
         self.url = 'https://www.instagram.com/data/shared_data/'
         self.login_url = 'https://www.instagram.com/accounts/login/ajax/'
-        self.db = database
-        
         self.session = requests.session()
         self.response = self.session.get(self.url)
         self.csrf = json.loads(self.response.text)['config']['csrf_token']
@@ -30,56 +32,62 @@ class InstagramScrapping:
             'Sec-GPC': '1',
             'TE': 'trailers',
         }
-    async def check_cookie(self,**cookie):
-        self.headers['Referer']=f'https://www.instagram.com/ataullah1385/'
-        # self.headers['X-CSRFToken']=cookie['csrftoken']
-
-        params = {
-            'username': 'ataullah1385',
-        }
-
-        response = requests.get(
-            'https://www.instagram.com/api/v1/users/web_profile_info/',
-            params=params,
-            cookies=cookie,
-            headers=self.headers,
-        )
+    
+    async def get_account_info(self,cookie):
+        self.headers['Referer']=f'https://www.instagram.com/accounts/edit/'
         try:
+            response = requests.get('https://www.instagram.com/api/v1/accounts/edit/web_form_data/', cookies=cookie, headers=self.headers)
             data = json.loads(response.text)
-            return True
+            print(data['form_data'])
+            return data['form_data']
         except:
-            return False
+            return None
 
 
-    async def account(self,username,password): 
-        
+    async def account(self,usr,pwd): 
         self.headers['Referer']="https://www.instagram.com/accounts/login/"
         
         self.payload = {
-            'username': username,
-            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{self.time}:{password}',
+            'username': usr,
+            'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{self.time}:{pwd}',
             'optIntoOneTap': 'false',
         }
 
-        response = requests.post(self.login_url,data=self.payload,headers=self.headers)
-        data=json.loads(response.text)
+        try:
+            response = requests.post(self.login_url,data=self.payload,headers=self.headers)
+            data=json.loads(response.text)
+            if not data['authenticated']:
+                raise HTTPException(status_code=401, detail="user pass instagram is invalid")
+        except:
+                raise HTTPException(status_code=401, detail="user pass instagram is invalid")
 
-        if not data['authenticated']:
-            return False
 
-        await self.db.add_instagram_account(username, password)
+
         cookie = response.cookies.get_dict()
-        cookie['account']=username
-        await self.db.add_cookie(cookie)
-        return True
-        
-    async def following(self,username,instaID):
-        cookies = await self.db.get_cookie(instaID)
-        self.headers['Referer']=f'https://www.instagram.com/{username}/'
+        data = await self.get_account_info(cookie)
+        print(data)
+        if  data:
+            data['username_instagram']=usr
+            data['password_instagram']=pwd
+            data['userPanel']=self.userPanel
+            await self.db.add_instagram_account(data)
+            cookie['account']=usr
+            cookie['userPanel']=self.userPanel
+            await self.db.add_cookie(cookie)
+            res = await self.db.get_instagram_accounts(self.userPanel)
+            return res
+        raise HTTPException(status_code=401, detail="user pass instagram is invalid")
+
+    async def following(self,instagramID):
+        cookies = await self.db.get_cookie(self.userPanel)
+        print('following : ',cookies)
+        if len(cookies) <0:
+            raise HTTPException(status_code=400, detail="can not find cookies")
+        self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
         self.headers['X-CSRFToken']=cookies['csrftoken']
 
         params = {
-            'username': username,
+            'username': instagramID,
         }
 
         response = requests.get(
@@ -94,7 +102,7 @@ class InstagramScrapping:
         usr_id = data['data']['user']['id']
         print('user ID : ',usr_id)
         
-        self.headers['Referer'] = f'https://www.instagram.com/{username}/following/'
+        self.headers['Referer'] = f'https://www.instagram.com/{instagramID}/following/'
         params_following = {
         'max_id': '100',
         }
@@ -107,16 +115,19 @@ class InstagramScrapping:
             print('following : ',response)
             following_data = json.loads(response.text)
             for user in following_data['users']:
-                user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':username}    
+                user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':instagramID}    
                 await self.db.add_following(user)
                 
-    async def follower(self,username,instaID):
-        cookies = await self.db.get_cookie(instaID)
-        self.headers['Referer']=f'https://www.instagram.com/{username}/'
+    async def follower(self,instagramID):
+        cookies = await self.db.get_cookie(self.userPanel)
+        print('follower : ',cookies)
+        if len(cookies) <0:
+            raise HTTPException(status_code=400, detail="can not find cookies")
+        self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
         self.headers['X-CSRFToken']=cookies['csrftoken']
 
         params = {
-            'username': username,
+            'username': instagramID,
         }
 
         response = requests.get(
@@ -131,7 +142,7 @@ class InstagramScrapping:
         usr_id = data['data']['user']['id']
         print('user ID : ',usr_id)
         
-        self.headers['Referer'] = f'https://www.instagram.com/{username}/followers/'
+        self.headers['Referer'] = f'https://www.instagram.com/{instagramID}/followers/'
         params_follower = {
         'max_id': '100',
         }
@@ -144,7 +155,7 @@ class InstagramScrapping:
             print('follower : ',response)
             follower_data = json.loads(response.text)
             for user in follower_data['users']:
-                user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':username}    
+                user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':instagramID}    
                 await self.db.add_follower(user)
         
         
