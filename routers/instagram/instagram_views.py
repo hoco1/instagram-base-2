@@ -1,5 +1,5 @@
 from core.auth.jwt_bearer import get_current_user
-from .schemas import Account,Instagram,User,FetchData
+from .schemas import Account,UserPanel,FetchData,ResponseLogin
 from db import get_database,database
 from core.config import settings
 
@@ -13,8 +13,8 @@ from fastapi import Depends,HTTPException
 router = APIRouter()
 
 # save (user,pass) and cookie
-@router.post('/instagram/login',tags=['instagram'])
-async def add_user(instagram:Account,user:User = Depends(get_current_user),db=Depends(get_database)):
+@router.post('/instagram/login',tags=['instagram'],response_model=ResponseLogin)
+async def add_user(instagram:Account,user:UserPanel = Depends(get_current_user),db=Depends(get_database)):
     username = instagram.instagramID
     password = instagram.instagramPass
     cookies = instagram.cookie
@@ -31,18 +31,29 @@ async def add_user(instagram:Account,user:User = Depends(get_current_user),db=De
                     raise HTTPException(status_code=422, detail="list format is invalid")
             cookies = cookie
         res = await scrap.get_account_info(cookies)
+        print(cookie)
+        print(res)
         if not res:
             raise HTTPException(status_code=401, detail="cookie is invalid")
+
+        res['userPanel']=user['username']
+        await db.add_instagram_account(res)
         
         cookies['userPanel']=user['username']
         insta = res['username']
         cookies['username']=insta
         await db.add_cookie(cookies)
         print("cookie is valid & insert")
-        return cookies
+
+        result = {"gender":res["gender"],
+            "username":res["username"],
+            "email":res['email'],
+            "cookie":cookie}
+        
+        return result
     if username and password:
-        res = await scrap.account(username,password)
-        return serializeList(res)
+        result = await scrap.account(username,password)
+        return result
     raise HTTPException(status_code=401, detail="invalid credentials")
 
 # get following list
