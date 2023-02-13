@@ -1,51 +1,69 @@
 from core.auth.jwt_bearer import get_current_user
-from .schemas import Account,Cookie
+from .schemas import Account,Instagram,User,FetchData
 from db import get_database,database
 from core.config import settings
 
 from core.scarping import InstagramScrapping
 
-from .showing_data import serializeList
+from .manipulation import serializeList
 
 from fastapi import APIRouter
-from fastapi import Depends
+from fastapi import Depends,HTTPException
 
 router = APIRouter()
 
 # save (user,pass) and cookie
 @router.post('/instagram/login',tags=['instagram'])
-async def add_user(instagram:Account,user = Depends(get_current_user),db=Depends(get_database)):
+async def add_user(instagram:Account,user:User = Depends(get_current_user),db=Depends(get_database)):
     username = instagram.instagramID
     password = instagram.instagramPass
-    cookie = instagram.cookie
-    scrap = InstagramScrapping(db)
-    if len(cookie) > 0:
-        res = await scrap.check_cookie(**cookie)
+    cookies = instagram.cookie
+    scrap = InstagramScrapping(db,user['username'])
+    if cookies:
+        if type(cookies) == list:
+            cookie = {}
+            for i in range(len(cookies)):
+                try:
+                    key = cookies[i]['name']
+                    value = cookies[i]['value']
+                    cookie[key]=value
+                except:
+                    raise HTTPException(status_code=422, detail="list format is invalid")
+            cookies = cookie
+        res = await scrap.get_account_info(cookies)
         if not res:
-            return {"msg":"cookie is invalid"}
-        await db.add_cookie(cookie)
-        # cookies = await database.get_cookie()
-        # return cookies
-    else:
-        res = await scrap.account(username, password)
-        if not res:
-            return {"msg":"username and password is invalid"}
-        cookies = await database.get_cookie(instaID=username)
+            raise HTTPException(status_code=401, detail="cookie is invalid")
+        cookies['userPanel']=user['username']
+        cookies['username']=None
+        await db.add_cookie(cookies)
+        print("cookie is valid & insert")
         return cookies
+    if username and password:
+        res = await scrap.account(username,password)
+        return serializeList(res)
+    raise HTTPException(status_code=401, detail="invalid credentials")
 
 # get following list
-@router.get("/instagram/following/{usr}",tags=['instagram'])
-async def list_following(username:str,instaID:str ,user= Depends(get_current_user),db=Depends(get_database)):
-    scrap = InstagramScrapping(db)
-    await scrap.following(username,instaID)
-    res = await db.fetch_following_data(username,10)
+@router.post("/instagram/following/{usr}",tags=['instagram'])
+async def list_following(data:FetchData ,user= Depends(get_current_user),db=Depends(get_database)):
+    scrap = InstagramScrapping(db,userPanel=user['username'])
+    instagramID = data.instagramID
+    whichAccount = data.whichAccount
+    print(whichAccount)
+    print(instagramID)
+    await scrap.following(instagramID)
+    res = await db.fetch_following_data(instagramID,10)
     return serializeList(res)
     
 # get follower list
-@router.get("/instagram/follower/{usr}",tags=['instagram'])
-async def list_follower(username:str,instaID:str,user = Depends(get_current_user),db=Depends(get_database)):
-    scrap = InstagramScrapping(db)
-    await scrap.follower(username,instaID)
-    res = await db.fetch_follower_data(username,10)
+@router.post("/instagram/follower/{usr}",tags=['instagram'])
+async def list_follower(data:FetchData,user = Depends(get_current_user),db=Depends(get_database)):
+    scrap = InstagramScrapping(db,userPanel=user['username'])
+    instagramID = data.instagramID
+    whichAccount = data.whichAccount
+    print(whichAccount)
+    print(instagramID)
+    await scrap.follower(instagramID)
+    res = await db.fetch_follower_data(instagramID,10)
     return serializeList(res)
 
