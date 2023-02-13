@@ -33,8 +33,10 @@ async def add_user(instagram:Account,user:User = Depends(get_current_user),db=De
         res = await scrap.get_account_info(cookies)
         if not res:
             raise HTTPException(status_code=401, detail="cookie is invalid")
+        
         cookies['userPanel']=user['username']
-        cookies['username']=None
+        insta = res['username']
+        cookies['username']=insta
         await db.add_cookie(cookies)
         print("cookie is valid & insert")
         return cookies
