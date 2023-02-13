@@ -67,7 +67,6 @@ class InstagramScrapping:
         data = await self.get_account_info(cookie)
         print(data)
         if  data:
-            data['username_instagram']=usr
             data['password_instagram']=pwd
             data['userPanel']=self.userPanel
             await self.db.add_instagram_account(data)
