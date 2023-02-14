@@ -83,83 +83,78 @@ class InstagramScrapping:
 
     async def following(self,instagramID):
         cookies = await self.db.get_cookie(self.userPanel)
-        if len(cookies)>0:   
-            self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
-            self.headers['X-CSRFToken']=cookies['csrftoken']
+  
+        self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
+        self.headers['X-CSRFToken']=cookies['csrftoken']
 
-            params = {
-                'username': instagramID,
-            }
+        params = {
+            'username': instagramID,
+        }
 
-            response = requests.get(
-                'https://www.instagram.com/api/v1/users/web_profile_info/',
-                params=params,
-                cookies=cookies,
-                headers=self.headers,
-            )
-            print('user info response :',response)
-            
-            data = json.loads(response.text)
-            usr_id = data['data']['user']['id']
-            print('user ID : ',usr_id)
-            
-            self.headers['Referer'] = f'https://www.instagram.com/{instagramID}/following/'
-            params_following = {
-            'max_id': '100',
-            }
-            
-            for i in range(3):
-                response = requests.get(f'https://www.instagram.com/api/v1/friendships/{usr_id}/following/', 
-                                        headers=self.headers, 
-                                        params=params_following, 
-                                        cookies=cookies)
-                print('following : ',response)
-                following_data = json.loads(response.text)
-                for user in following_data['users']:
-                    user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':instagramID}    
-                    await self.db.add_following(user)
-            else:
-                raise HTTPException(status_code=400, detail="can not find cookies")
+        response = requests.get(
+            'https://www.instagram.com/api/v1/users/web_profile_info/',
+            params=params,
+            cookies=cookies,
+            headers=self.headers,
+        )
+        print('user info response :',response)
+        
+        data = json.loads(response.text)
+        usr_id = data['data']['user']['id']
+        print('user ID : ',usr_id)
+        
+        self.headers['Referer'] = f'https://www.instagram.com/{instagramID}/following/'
+        params_following = {
+        'max_id': '100',
+        }
+        
+        for i in range(3):
+            response = requests.get(f'https://www.instagram.com/api/v1/friendships/{usr_id}/following/', 
+                                    headers=self.headers, 
+                                    params=params_following, 
+                                    cookies=cookies)
+            print('following : ',response)
+            following_data = json.loads(response.text)
+            for user in following_data['users']:
+                user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':instagramID}    
+                await self.db.add_following(user)
+
                 
     async def follower(self,instagramID):
         cookies = await self.db.get_cookie(self.userPanel)
-        print(type(cookies))
-        if len(cookies)>0:
-            self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
-            self.headers['X-CSRFToken']=cookies['csrftoken']
 
-            params = {
-                'username': instagramID,
-            }
+        self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
+        self.headers['X-CSRFToken']=cookies['csrftoken']
 
-            response = requests.get(
-                'https://www.instagram.com/api/v1/users/web_profile_info/',
-                params=params,
-                cookies=cookies,
-                headers=self.headers,
-            )
-            print('user info response :',response)
-            
-            data = json.loads(response.text)
-            usr_id = data['data']['user']['id']
-            print('user ID : ',usr_id)
-            
-            self.headers['Referer'] = f'https://www.instagram.com/{instagramID}/followers/'
-            params_follower = {
-            'max_id': '100',
-            }
-            
-            for i in range(3):
-                response = requests.get(f'https://www.instagram.com/api/v1/friendships/{usr_id}/followers/', 
-                                        headers=self.headers, 
-                                        params=params_follower, 
-                                        cookies=cookies)
-                print('follower : ',response)
-                follower_data = json.loads(response.text)
-                for user in follower_data['users']:
-                    user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':instagramID}    
-                    await self.db.add_follower(user)
-        else:
-            raise HTTPException(status_code=400, detail="can not find cookies")
+        params = {
+            'username': instagramID,
+        }
+
+        response = requests.get(
+            'https://www.instagram.com/api/v1/users/web_profile_info/',
+            params=params,
+            cookies=cookies,
+            headers=self.headers,
+        )
+        print('user info response :',response)
         
+        data = json.loads(response.text)
+        usr_id = data['data']['user']['id']
+        print('user ID : ',usr_id)
+        
+        self.headers['Referer'] = f'https://www.instagram.com/{instagramID}/followers/'
+        params_follower = {
+        'max_id': '100',
+        }
+        
+        for i in range(3):
+            response = requests.get(f'https://www.instagram.com/api/v1/friendships/{usr_id}/followers/', 
+                                    headers=self.headers, 
+                                    params=params_follower, 
+                                    cookies=cookies)
+            print('follower : ',response)
+            follower_data = json.loads(response.text)
+            for user in follower_data['users']:
+                user = {'userName':user['username'],'full_name':user['full_name'],'is_private':user['is_private'],'which_account':instagramID}    
+                await self.db.add_follower(user)
         
