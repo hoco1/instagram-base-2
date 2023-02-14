@@ -2,6 +2,7 @@ from datetime import datetime
 import requests
 import json
 from fastapi import HTTPException
+from bson.objectid import ObjectId
 class InstagramScrapping: 
     def __init__(self,database,userPanel):
         self.db = database
@@ -38,13 +39,13 @@ class InstagramScrapping:
         try:
             response = requests.get('https://www.instagram.com/api/v1/accounts/edit/web_form_data/', cookies=cookie, headers=self.headers)
             data = json.loads(response.text)
-            print(data['form_data'])
             return data['form_data']
         except:
             return None
 
 
     async def account(self,usr,pwd): 
+        obj = ObjectId()
         self.headers['Referer']="https://www.instagram.com/accounts/login/"
         
         self.payload = {
@@ -64,25 +65,33 @@ class InstagramScrapping:
 
 
         cookie = response.cookies.get_dict()
+        cookie['_id']=obj
+        await self.db.add_cookie(cookie)
+        del cookie['_id']
         data = await self.get_account_info(cookie)
         print(data)
         if  data:
+            temp = data
+            usefulInfos = ['first_name','last_name','email','is_email_confirmed',
+                            'is_phone_confirmed','username',
+                            'phone_number','gender','birthday']
+            data = {}
+            for info in usefulInfos:
+                if temp[info]:
+                    data[info]=temp[info]
+            
+            self.userPanel = await self.db.get_account(self.userPanel)
             data['password_instagram']=pwd
-            data['userPanel']=self.userPanel
+            data['userPanel_id']=self.userPanel['_id']
+            data['cookie_id']=obj
             await self.db.add_instagram_account(data)
-            cookie['account']=usr
-            cookie['userPanel']=self.userPanel
-            await self.db.add_cookie(cookie)
-            result = {"gender":data["gender"],
-            "username":data["username"],
-            "email":data['email'],
-            "cookie":cookie}
-            # res = await self.db.get_instagram_accounts(self.userPanel)
-            return result
+
+            return (dict(cookie),data)
         raise HTTPException(status_code=401, detail="user pass instagram is invalid")
 
     async def following(self,instagramID):
-        cookies = await self.db.get_cookie(self.userPanel)
+        usr = self.userPanel['username']
+        cookies = await self.db.get_cookie(usr)
   
         self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
         self.headers['X-CSRFToken']=cookies['csrftoken']
