@@ -2,7 +2,6 @@ from core.config import settings
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from typing import List
 from core.hashing import Hasher
-from bson.objectid import ObjectId
 class MongoManager:
     client: AsyncIOMotorClient = None
     db: AsyncIOMotorDatabase = None
@@ -25,35 +24,20 @@ class MongoManager:
         user = await self.db[settings.TABLE_USERS].find_one({"username":username})
         return user
     
-    async def get_cookie(self,userPanel):
-        cursor = self.db[settings.TABLE_INSTAGRAM_COOKIE].find({'userPanel':userPanel}).sort("_id",-1).limit(1)
-        cookie = []
-        async for i in cursor:
-            cookie.append(i)
-        print(cookie)
-        try:
-            cookie = cookie[0]
-            del cookie['_id']
-            del cookie['username']
-            del cookie['userPanel']
-            return cookie
-        except:
-            return None
+    async def add_cookie(self,cookie):
+        await self.db[settings.TABLE_INSTAGRAM_COOKIE].insert_one(dict(cookie))
+
+    async def get_cookie(self,id):
+        cookie = self.db[settings.TABLE_INSTAGRAM_COOKIE].find_one({'_id':id})
+        return cookie
     
     async def add_instagram_account(self,data):
         await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].insert_one(data)
     
-    async def get_instagram_accounts(self,userPanel):
-        list_accounts = []
-        accounts = self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].find({'userPanel':userPanel})
-        async for account in accounts:
-            list_accounts.append(account)
-        return list_accounts
+    async def get_instagram_account(self,instaID):
+        account = await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].find_one({'username':instaID})
+        return account
 
-    async def add_cookie(self,cookie):
-        await self.db[settings.TABLE_INSTAGRAM_COOKIE].insert_one(dict(cookie))
-        
-    
     async def add_follower(self,user):
         await self.db[settings.TABLE_INSTAGRAM_FOLLOWERS].insert_one(user)
         
