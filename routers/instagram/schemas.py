@@ -14,8 +14,13 @@ class FetchData(BaseModel):
     whichAccount:Optional[str]
 
 class ResponseLogin(BaseModel):
-    gender:str
-    username:str
-    email:str
-    cookie:dict
-
+    first_name:Optional[str]
+    last_name:Optional[str]
+    email:Optional[str]
+    is_email_confirmed:Optional[str]
+    is_phone_confirmed:Optional[str]
+    username:Optional[str]
+    phone_number:Optional[str]
+    gender:Optional[str]
+    birthday:Optional[str]
+    cookie:Optional[dict]
