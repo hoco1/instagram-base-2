@@ -11,8 +11,8 @@ class Settings:
     MONGO_PASSWORD=config("MONGO_PASSWORD")
     # Database and Table names
     DATABASE="local"
-    TABLE_USERS="users"
-    TABLE_INSTAGRAM_ACCOUNTS="accounts"
+    TABLE_USERS="account_panel"
+    TABLE_INSTAGRAM_ACCOUNTS="account_instagram"
     TABLE_INSTAGRAM_COOKIE="cookies"
     TABLE_INSTAGRAM_FOLLOWERS="followers"
     TABLE_INSTAGRAM_FOLLOWING="following"
