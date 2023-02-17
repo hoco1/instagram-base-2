@@ -37,7 +37,6 @@ async def add_user(instagram:Account,user:UserPanel = Depends(get_current_user),
                     raise HTTPException(status_code=422, detail="list format is invalid")
             cookies = manipulatCookie
         res = await scrap.get_account_info(cookies)
-        print(res)
         if not res:
             raise HTTPException(status_code=401, detail="cookie is invalid")
 
@@ -48,13 +47,7 @@ async def add_user(instagram:Account,user:UserPanel = Depends(get_current_user),
         for info in usefulInfos:
             if res[info]:
                     data[info]=res[info]
-
-        data['password_instagram']=None
-        data['userPanel_id']=userPanel['_id']
-        data['cookie_id'] = obj
-
-        await db.add_instagram_account(data)
-
+        
         result={
             "first_name":res['first_name'] ,
             "last_name":res['last_name'] ,
@@ -67,9 +60,27 @@ async def add_user(instagram:Account,user:UserPanel = Depends(get_current_user),
             "birthday":res['birthday'],
             "cookie":dict(cookies)
         }
+        
         cookies['_id']=obj
 
         await db.add_cookie(cookies)
+        
+        usr = data['username']
+        instagramAccount = await db.get_instagram_account(usr)
+        if instagramAccount:
+            print(instagramAccount)
+            myquery = { "username": usr }
+            newvalues = { "$set": { "cookie_id": obj } }
+
+            await db.update_instagram_account(myquery,newvalues)
+            
+            return result
+
+        data['password_instagram']=None
+        data['userPanel_id']=userPanel['_id']
+        data['cookie_id'] = obj
+
+        await db.add_instagram_account(data)
 
         return result
     if username and password:
@@ -96,9 +107,7 @@ async def list_following(data:FetchData ,user= Depends(get_current_user),db=Depe
     scrap = InstagramScrapping(db,userPanel=user['username'])
     instagramID = data.instagramID
     whichAccount = data.whichAccount
-    print(whichAccount)
-    print(instagramID)
-    await scrap.following(instagramID)
+    await scrap.following(instagramID,whichAccount)
     res = await db.fetch_following_data(instagramID,10)
     return serializeList(res)
     
@@ -108,9 +117,7 @@ async def list_follower(data:FetchData,user = Depends(get_current_user),db=Depen
     scrap = InstagramScrapping(db,userPanel=user['username'])
     instagramID = data.instagramID
     whichAccount = data.whichAccount
-    print(whichAccount)
-    print(instagramID)
-    await scrap.follower(instagramID)
+    await scrap.follower(instagramID,whichAccount)
     res = await db.fetch_follower_data(instagramID,10)
     return serializeList(res)
 
