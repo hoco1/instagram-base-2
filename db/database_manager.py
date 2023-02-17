@@ -27,8 +27,11 @@ class MongoManager:
     async def add_cookie(self,cookie):
         await self.db[settings.TABLE_INSTAGRAM_COOKIE].insert_one(dict(cookie))
 
-    async def get_cookie(self,id):
-        cookie = self.db[settings.TABLE_INSTAGRAM_COOKIE].find_one({'_id':id})
+    async def get_cookie(self,whichAccount):
+        account = await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].find_one({'username':whichAccount})
+        cookie_id = account['cookie_id']
+        cookie = await self.db[settings.TABLE_INSTAGRAM_COOKIE].find_one({'_id':cookie_id})
+        del cookie['_id']
         return cookie
     
     async def add_instagram_account(self,data):
@@ -37,6 +40,8 @@ class MongoManager:
     async def get_instagram_account(self,instaID):
         account = await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].find_one({'username':instaID})
         return account
+    async def update_instagram_account(self,query,value):
+        await self.db[settings.TABLE_INSTAGRAM_ACCOUNTS].update_one(query, value)
 
     async def add_follower(self,user):
         await self.db[settings.TABLE_INSTAGRAM_FOLLOWERS].insert_one(user)
