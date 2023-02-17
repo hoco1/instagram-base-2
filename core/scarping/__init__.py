@@ -79,6 +79,18 @@ class InstagramScrapping:
             for info in usefulInfos:
                 if temp[info]:
                     data[info]=temp[info]
+                    
+            usr = data['username']
+            self.instagramAccount = await self.db.get_instagram_account(usr)
+            if self.instagramAccount:
+                print(self.instagramAccount)
+                myquery = { "username": usr }
+                newvalues = { "$set": { "cookie_id": obj } }
+
+                await self.db.update_instagram_account(myquery,newvalues)
+                
+                return (dict(cookie),data)
+
             
             self.userPanel = await self.db.get_account(self.userPanel)
             data['password_instagram']=pwd
@@ -89,9 +101,10 @@ class InstagramScrapping:
             return (dict(cookie),data)
         raise HTTPException(status_code=401, detail="user pass instagram is invalid")
 
-    async def following(self,instagramID):
-        usr = self.userPanel['username']
-        cookies = await self.db.get_cookie(usr)
+    async def following(self,instagramID,whichAccount):
+        # usr = self.userPanel['username']
+        cookies = await self.db.get_cookie(whichAccount)
+        print(cookies)
   
         self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
         self.headers['X-CSRFToken']=cookies['csrftoken']
@@ -129,8 +142,9 @@ class InstagramScrapping:
                 await self.db.add_following(user)
 
                 
-    async def follower(self,instagramID):
-        cookies = await self.db.get_cookie(self.userPanel)
+    async def follower(self,instagramID,whichAccount):
+        cookies = await self.db.get_cookie(whichAccount)
+        print(cookies)
 
         self.headers['Referer']=f'https://www.instagram.com/{instagramID}/'
         self.headers['X-CSRFToken']=cookies['csrftoken']
