@@ -11,7 +11,7 @@ class Instagram(BaseModel):
     cookie:Optional[str]
 class FetchData(BaseModel):
     instagramID:str
-    whichAccount:Optional[str]
+    whichAccount:str
 
 class ResponseLogin(BaseModel):
     first_name:Optional[str]
